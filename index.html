@@ -1,66 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nomad Sketchbook</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="app">
-      <aside id="sidebar" class="sidebar">
-        <header class="sidebar-header">
-          <button id="toggle-sidebar-mode" class="btn-icon">
-            <span class="mode-icon">🗺️</span>
-          </button>
-          <h1 id="sidebar-title">Expeditions</h1>
-        </header>
-        <div id="sidebar-content" class="sidebar-content">
-          <!-- Thumbnails injected here -->
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nomad Sketchbook</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@300;500;700&display=swap"
+    rel="stylesheet">
+</head>
+
+<body>
+  <div id="app">
+    <aside id="sidebar" class="sidebar">
+      <header class="sidebar-header">
+        <button id="toggle-sidebar-mode" class="btn-icon">
+          <span class="mode-icon">🗺️</span>
+        </button>
+        <h1 id="sidebar-title">Expeditions</h1>
+      </header>
+      <div id="sidebar-content" class="sidebar-content">
+        <!-- Thumbnails injected here -->
+      </div>
+      <footer class="sidebar-footer">
+        <button id="add-item-btn" class="btn-primary">+ New</button>
+      </footer>
+    </aside>
+
+    <main id="workspace" class="workspace">
+      <header id="main-header" class="main-header">
+        <div class="breadcrumb">
+          <span id="trip-breadcrumb">Himalayan Expedition</span>
+          <span class="separator">/</span>
+          <span id="page-breadcrumb">Arrival in Leh</span>
         </div>
-        <footer class="sidebar-footer">
-          <button id="add-item-btn" class="btn-primary">+ New</button>
-        </footer>
-      </aside>
-
-      <main id="workspace" class="workspace">
-        <header id="main-header" class="main-header">
-          <div class="breadcrumb">
-            <span id="trip-breadcrumb">Himalayan Expedition</span>
-            <span class="separator">/</span>
-            <span id="page-breadcrumb">Arrival in Leh</span>
-          </div>
-          <div class="actions">
-            <button id="toggle-map-layer" class="btn-secondary">Map Layer</button>
-            <button id="toggle-zoom" class="btn-secondary">Zoom [1x]</button>
-            <button id="toggle-tickler" class="btn-icon">📁</button>
-          </div>
-        </header>
-
-        <section id="canvas-container" class="canvas-container">
-          <div id="canvas" class="canvas">
-            <!-- Composition nodes injected here -->
-            <div id="map-layer" class="map-layer hidden"></div>
-          </div>
-        </section>
-
-        <div id="deep-dive-overlay" class="deep-dive-overlay hidden">
-          <div class="magnifier-ring"></div>
+        <div class="actions">
+          <button id="toggle-map-layer" class="btn-secondary">Map Layer</button>
+          <button id="toggle-zoom" class="btn-secondary">Zoom [1x]</button>
+          <button id="toggle-tickler" class="btn-icon">📁</button>
         </div>
-      </main>
+      </header>
 
-      <div id="tickler-drawer" class="tickler-drawer hidden">
-        <header>
-          <h2>Tickler File</h2>
-        </header>
-        <div id="tickler-list" class="tickler-list">
-          <!-- Tickler items injected here -->
+      <section id="canvas-container" class="canvas-container">
+        <div id="canvas" class="canvas">
+          <!-- Composition nodes injected here -->
+          <div id="map-layer" class="map-layer hidden"></div>
         </div>
+      </section>
+
+      <div id="deep-dive-overlay" class="deep-dive-overlay hidden">
+        <div class="magnifier-ring"></div>
+      </div>
+    </main>
+
+    <div id="tickler-drawer" class="tickler-drawer hidden">
+      <header>
+        <h2>Tickler File</h2>
+      </header>
+      <div id="tickler-list" class="tickler-list">
+        <!-- Tickler items injected here -->
       </div>
     </div>
-    <script type="module" src="/main.js"></script>
-  </body>
+  </div>
+  <script type="module" src="./main.js"></script>
+</body>
+
 </html>

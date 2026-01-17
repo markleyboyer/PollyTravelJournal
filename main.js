@@ -1,5 +1,5 @@
 import { store } from './src/store/index.js';
-import './src/style.css';
+import './style.css';
 
 /**
  * Nomad Sketchbook - Main Controller
