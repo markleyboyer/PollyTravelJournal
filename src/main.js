@@ -12,6 +12,8 @@ class App {
         this.sidebarTitle = document.getElementById('sidebar-title');
         this.canvas = document.getElementById('canvas');
         this.modeBtn = document.getElementById('toggle-sidebar-mode');
+        this.map = null;
+        this.mapLayer = null;
 
         this.init();
     }
@@ -51,6 +53,24 @@ class App {
             const drawer = document.getElementById('tickler-drawer');
             drawer.classList.toggle('hidden');
         });
+
+        // Node Creation Menu
+        const addBtn = document.getElementById('add-item-btn');
+        const addMenu = document.getElementById('add-menu');
+        addBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            addMenu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', () => addMenu.classList.add('hidden'));
+
+        addMenu.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const type = e.currentTarget.dataset.type;
+                store.addNode(type);
+                addMenu.classList.add('hidden');
+            });
+        });
     }
 
     render(state) {
@@ -78,6 +98,7 @@ class App {
             if (trip) {
                 trip.pages.forEach(pageId => {
                     const page = pages[pageId];
+                    if (!page) return;
                     const el = this.createThumbnail(null, page.title, page.date, page.id === currentPageId, true);
                     el.addEventListener('click', () => store.selectPage(page.id));
                     this.sidebarContent.appendChild(el);
@@ -106,9 +127,11 @@ class App {
 
     renderCanvas(state) {
         const { currentPageId, pages, nodes } = state;
+        const page = pages[currentPageId];
+
+        // Only re-render nodes if needed to avoid flickering (simplified for now)
         this.canvas.innerHTML = '';
 
-        const page = pages[currentPageId];
         if (!page) {
             this.canvas.innerHTML = '<div class="canvas-empty">Select a page to begin sketching</div>';
             return;
@@ -119,45 +142,79 @@ class App {
             if (node) {
                 const nodeEl = this.createNode(node);
                 this.canvas.appendChild(nodeEl);
+                this.setupDraggable(nodeEl, node.id);
             }
         });
 
-        // Handle Map Layer placeholder
+        // Map layer container
         const mapLayer = document.createElement('div');
         mapLayer.id = 'map-layer';
-        mapLayer.className = `map-layer ${state.showMapLayer ? '' : 'hidden'}`;
-        mapLayer.innerHTML = '<div class="map-placeholder">GPS Breadcrumbs Overlay (Gaia GPS)</div>';
+        mapLayer.className = `map-layer ${state.showMapLayer ? '' : 'map-hidden'}`;
         this.canvas.appendChild(mapLayer);
+    }
+
+    setupDraggable(el, nodeId) {
+        let isDragging = false;
+        let startX, startY;
+
+        el.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.node-controls')) return;
+            isDragging = true;
+            startX = e.clientX - el.offsetLeft;
+            startY = e.clientY - el.offsetTop;
+            el.style.zIndex = 1000;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const x = e.clientX - startX;
+            const y = e.clientY - startY;
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                el.style.zIndex = '';
+                store.updateNode(nodeId, {
+                    x: parseInt(el.style.left),
+                    y: parseInt(el.style.top)
+                });
+            }
+        });
     }
 
     createNode(node) {
         const el = document.createElement('div');
-        el.className = `node node-${node.type.toLowerCase()}`;
+        el.className = `node node-${node.type.toLowerCase()} ${node.hasBackgroundRemoved ? 'silhouette' : ''}`;
         el.style.left = `${node.x}px`;
         el.style.top = `${node.y}px`;
         el.style.width = node.width ? `${node.width}px` : 'auto';
         el.style.height = node.height ? `${node.height}px` : 'auto';
 
+        const controls = `
+      <div class="node-controls">
+        ${node.type === 'PHOTO' ? `<button class="node-btn silhouette-btn">${node.hasBackgroundRemoved ? 'Show BG' : 'Silhouette'}</button>` : ''}
+        <button class="node-btn delete-btn">×</button>
+      </div>
+    `;
+
         switch (node.type) {
             case 'TEXT':
-                el.innerHTML = `<div class="node-text-content" style="${Object.entries(node.style || {}).map(([k, v]) => `${k}:${v}`).join(';')}">${node.content}</div>`;
+                el.innerHTML = `${controls}<div class="node-text-content" style="${Object.entries(node.style || {}).map(([k, v]) => `${k}:${v}`).join(';')}">${node.content}</div>`;
                 break;
             case 'PHOTO':
-                el.innerHTML = `<img src="${node.src}" class="${node.hasBackgroundRemoved ? 'bg-removed' : ''}" alt="Travel Photo">`;
+                el.innerHTML = `${controls}<img src="${node.src}" alt="Travel Photo">`;
+                const silBtn = el.querySelector('.silhouette-btn');
+                if (silBtn) silBtn.addEventListener('click', () => store.toggleSilhouette(node.id));
                 break;
-            case 'VOICE':
-                el.innerHTML = `
-          <div class="voice-node">
-            <button class="btn-play">▶</button>
-            <div class="waveform-stub"></div>
-            <p class="transcription">${node.transcription}</p>
-          </div>
-        `;
-                break;
-            case 'SKETCH':
-                el.innerHTML = `<canvas class="sketch-canvas" width="${node.width}" height="${node.height}"></canvas>`;
-                break;
+            default:
+                el.innerHTML = `${controls}<div class="node-placeholder">${node.type} Node</div>`;
         }
+
+        el.querySelector('.delete-btn').addEventListener('click', () => store.deleteNode(node.id));
+
         return el;
     }
 
@@ -172,7 +229,27 @@ class App {
     }
 
     renderMapLayer(state) {
-        // Placeholder logic for map visibility
+        if (!state.showMapLayer) {
+            if (this.map) {
+                this.map.remove();
+                this.map = null;
+            }
+            return;
+        }
+
+        const trip = state.trips.find(t => t.id === state.currentTripId);
+        if (!trip || !trip.gpsRoute || trip.gpsRoute.length === 0) return;
+
+        if (!this.map) {
+            this.map = L.map('map-layer').setView([trip.gpsRoute[0].lat, trip.gpsRoute[0].lng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(this.map);
+
+            const points = trip.gpsRoute.map(p => [p.lat, p.lng]);
+            L.polyline(points, { color: '#3b82f6', weight: 4 }).addTo(this.map);
+            this.map.fitBounds(points);
+        }
     }
 
     updateZoom(state) {
@@ -182,7 +259,7 @@ class App {
             this.canvas.style.transform = 'scale(1.5)';
         } else {
             container.classList.remove('zoom-2x');
-            this.canvas.style.transform = 'scale(0.8)'; // Fit to view by default
+            this.canvas.style.transform = 'scale(0.8)';
         }
     }
 }
